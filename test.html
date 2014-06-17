@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>GLSL Play Ground with WebGL</title>
+<script src="js/lib/codemirror.js"></script>
+<script src="js/lib/glsl.js"></script>
+<script src="python.js"></script>
+<link rel="stylesheet" href="css/codemirror.css" />
+<link rel="stylesheet" href="css/paraiso-dark.css" />
+</head>
+<body>
+    <div><textarea id="code" name="code">void main() {
+            vec2 pos = vec2(0);
+    }
+    </textarea></div>
+    <script>
+         var cm = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: 'glsl',
+            theme: 'paraiso-dark'
+        });
+    </script>
+
+</body>
+</html>

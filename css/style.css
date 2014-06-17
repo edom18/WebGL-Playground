@@ -1,0 +1,47 @@
+html, body, div {
+    margin: 0;
+    padding: 0;
+}
+img, canvas {
+    vertical-align: top;
+}
+
+#console {
+    position: absolute;
+    width: 100%;
+    height: 50px;
+    overflow: auto;
+    padding: 10px;
+    background: #000;
+    border: solid 1px #999;
+    color: #999;
+    font-family: monospace;
+    box-sizing: border-box;
+    z-index: 100;
+}
+
+.shader-source {
+    position: absolute;
+    left: 10%;
+    width: 80%;
+    height: 300px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: solid 1px rgba(255, 255, 255, 0.3);
+}
+
+
+#vertex {
+    top: 60px;
+}
+
+#fragment {
+    top: 390px;
+}
+
+.CodeMirror {
+    background: none !important;
+    line-height: 1.3;
+}
