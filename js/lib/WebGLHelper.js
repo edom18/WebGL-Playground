@@ -124,6 +124,43 @@
         },
 
         /**
+         * Get attribute locations with program.
+         *
+         * @param {WebGLProgram} program
+         * @param {Array<string>} attribNames
+         * @param {Array} dstLocation
+         *
+         * @return {Array} locations
+         */
+        getAttribLocations: function (program, attribNames, dstLocation) {
+            dstLocation || (dstLocation = []);
+
+            for (var i = 0, l = attribNames.length; i < l; i++) {
+                dstLocation[i] = gl.getAttribLocation(program, attribNames[i]);
+            }
+
+            return dstLocation;
+        },
+
+
+        /**
+         * Get uniform locations with program.
+         *
+         * @param {WebGLProgram} program
+         * @param {Array<string>} uniformNames
+         * @param {Array} dstLocation
+         *
+         * @return {Array} locations
+         */
+        getUniformLocations: function (program, uniformNames, dstLocation) {
+            dstLocation || (dstLocation = []);
+
+            for (var i = 0, l = uniformNames.length; i < l; i++) {
+                dstLocation[i] = gl.getUniformLocation(program, uniformNames[i]);
+            }
+        },
+
+        /**
          * Create a shader with a source.
          * @param {WebGLContext} gl
          * @param {string} type shader type
@@ -195,6 +232,28 @@
             }
 
             return buffer;
+        },
+
+        /**
+         * Create a VBO
+         *
+         * @param {Float32Array} data
+         * 
+         * @return {WebGLBuffer}
+         */
+        createVBO: function (data) {
+            return this.createBuffer(this.ARRAY_BUFFER, data);
+        },
+
+        /**
+         * Create a IBO
+         *
+         * @param {Float32Array} data
+         * 
+         * @return {WebGLBuffer}
+         */
+        createIBO: function (data) {
+            return this.createBuffer(this.ELEMENT_ARRAY_BUFFER, data);
         },
 
         /**
@@ -275,6 +334,20 @@
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         },
 
+        /**
+         * Set up attributes.
+         *
+         * @param {Array<WebGLBuffer>} vbos
+         * @param {Array<number>} attributes
+         * @param {Array<number>} strides
+         */
+        setupAttributes: function (vbos, attributes, strides) {
+            for (var i = 0, l = vbos.length; i < l; i++) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, vbos[i]);
+                gl.enableVertexAttribArray(attributes[i]);
+                gl.vertexAttribPointer(attributes[i], strides[i], gl.FLOAT, false, 0, 0);
+            }
+        },
 
         /**
          * Create a texture object.
@@ -305,7 +378,7 @@
                 gl.generateMipmap(gl.TEXTURE_2D);
                 gl.bindTexture(gl.TEXTURE_2D, null);
 
-                callback && calback(texture);
+                callback && callback(texture);
                 texture = null;
             };
             img.src = url;
