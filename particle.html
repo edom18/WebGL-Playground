@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>GLSL Play Ground with WebGL</title>
+<link rel="stylesheet" href="css/style.css" />
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- Shader1 -->
+<script type="x-shader/x-vertex" id="vertex-shader" name="code" class="code">attribute vec3 position;
+    attribute vec4 color;
+    attribute vec2 textureCoord;
+    uniform   mat4 mvpMatrix;
+    varying   vec4 vColor;
+    varying   vec2 vTextureCoord;
+
+    void main(void) {
+        vColor = color;
+        vTextureCoord = textureCoord;
+        gl_Position   = mvpMatrix * vec4(position, 1.0);
+    }
+</script>
+<script type="x-shader/x-fragment" id="fragment-shader" name="code" class="code"> precision mediump float;
+uniform sampler2D texture;
+
+varying vec4 vColor;
+varying vec2 vTextureCoord;
+
+void main() {
+    vec4 sum = vec4(0);
+    vec4 texColor = texture2D(texture, vTextureCoord);
+
+    gl_FragColor = texColor;
+}
+</script>
+
+
+<!-- Shader2 -->
+<script type="x-shader/x-vertex" id="vertex-shader2" name="code" class="code">attribute vec3 position;
+    attribute vec4 color;
+    attribute vec2 textureCoord;
+    uniform   mat4 mvpMatrix;
+    varying   vec4 vColor;
+    varying   vec2 vTextureCoord;
+
+    void main(void) {
+        vColor = color;
+        vTextureCoord = textureCoord;
+        gl_Position   = mvpMatrix * vec4(position, 1.0);
+    }
+</script>
+<script type="x-shader/x-fragment" id="fragment-shader2" name="code" class="code"> precision mediump float;
+uniform sampler2D texture;
+
+varying vec4 vColor;
+varying vec2 vTextureCoord;
+
+void main() {
+    vec4 sum = vec4(0);
+    vec4 texColor = texture2D(texture, vTextureCoord);
+
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script src="js/lib/minMatrix.js"></script>
+<script src="js/particle.js"></script>
+
+</body>
+</html>
