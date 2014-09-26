@@ -47,36 +47,42 @@
         attStride[0] = 3;
         attStride[1] = 4;
         attStride[2] = 2;
+
+        var sphere = new Sphere(32, 32, 2.0, [0.5, 0, 0, 1]);
+        var position = sphere.position;
+        var color    = sphere.color;
+        var textureCoord = sphere.texture;
+        var index    = sphere.index;
         
         // 頂点の位置
-        var position = [
-            -1.0,  1.0,  0.0,
-             1.0,  1.0,  0.0,
-            -1.0, -1.0,  0.0,
-             1.0, -1.0,  0.0
-        ];
+        // var position = [
+        //     -1.0,  1.0,  0.0,
+        //      1.0,  1.0,  0.0,
+        //     -1.0, -1.0,  0.0,
+        //      1.0, -1.0,  0.0
+        // ];
         
         // 頂点色
-        var color = [
-            1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0
-        ];
+        // var color = [
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0
+        // ];
         
         // テクスチャ座標
-        var textureCoord = [
-            0.0, 0.0,
-            1.0, 0.0,
-            0.0, 1.0,
-            1.0, 1.0
-        ];
+        // var textureCoord = [
+        //     0.0, 0.0,
+        //     1.0, 0.0,
+        //     0.0, 1.0,
+        //     1.0, 1.0
+        // ];
         
         // 頂点インデックス
-        var index = [
-            0, 1, 2,
-            3, 2, 1
-        ];
+        // var index = [
+        //     0, 1, 2,
+        //     3, 2, 1
+        // ];
         
         // VBOとIBOの生成
         var vPosition     = create_vbo(position);
