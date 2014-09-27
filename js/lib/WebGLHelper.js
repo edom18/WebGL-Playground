@@ -5,6 +5,11 @@
     var gl,
         loading_image_queue = [];
 
+    /**
+     * WebGL helper
+     *
+     * @require util.js
+     */
     var WebGLHelper = {
 
         //const variables.
@@ -158,6 +163,25 @@
             for (var i = 0, l = uniformNames.length; i < l; i++) {
                 dstLocation[i] = gl.getUniformLocation(program, uniformNames[i]);
             }
+        },
+
+        /**
+         * Load a shader.
+         *
+         * @param {string} type
+         * @param {string} url
+         *
+         * @return {Deffered}
+         */
+        loadShader: function (type, url, callback) {
+            var def = new util.Deferred();
+            var shaderType = (type === 'vertex') ? this.VERTEX_SHADER : this.FRAGMENT_SHADER;
+
+            util.ajax(url).done(util.bind(function (source) {
+                def.resolve(this.createShader(shaderType, source))
+            }, this));
+
+            return def;
         },
 
         /**
@@ -397,11 +421,23 @@
                 throw new Error('An argument must be like Object.'); 
             }
 
-            var vs  = this.createShader(this.VERTEX_SHADER, args.vertexShader);
-            var fs  = this.createShader(this.FRAGMENT_SHADER, args.fragmentShader);
-            var prg = this.createProgram(vs, fs);
+            var vs;
+            if (util.isString(args.vertexShader)) {
+                vs  = this.createShader(this.VERTEX_SHADER, args.vertexShader);
+            }
+            else {
+                vs = args.vertexShader;
+            }
 
-            return prg;
+            var fs;
+            if (util.isString(args.fragmentShader)) {
+                fs  = this.createShader(this.FRAGMENT_SHADER, args.fragmentShader);
+            }
+            else {
+                fs = args.fragmentShader;
+            }
+
+            return this.createProgram(vs, fs);
         }
     };
 
