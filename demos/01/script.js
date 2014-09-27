@@ -4,27 +4,35 @@
     var c, gl;
         
     // テクスチャ用変数の宣言
-    var texture  = null;
-    var v_shader = null;
-    var f_shader = null;
-    var prg      = null;
-
+    var texture     = null;
+    var programs    = [];
     var attLocation = [];
     var attStride   = [];
     var uniLocation = [];
+
+    // シェーダの読み込み
+    util.when([
+        $gl.loadShader('vertex', 'vertex.shader'),
+        $gl.loadShader('fragment', 'fragment.shader')
+    ]).done(function (shaders) {
+        for (var i = 0, l = shaders.length; i < l; i += 2) {
+            // ソースコードをコンパイル、プログラムオブジェクトの生成
+            programs[i] = $gl.setupProgram({
+                vertexShader  : shaders[i + 0],
+                fragmentShader: shaders[i + 1]
+            });
+        }
+
+        run();
+    });
 
     /**
      * コードの実行
      */
     function run() {
-        // ソースコードをコンパイル、プログラムオブジェクトの生成
-        prg = $gl.setupProgram({
-            vertexShader  : $gl.$('vertexShader'),
-            fragmentShader: $gl.$('fragmentShader')
-        });
-        
+
         // attributeLocationを配列に取得
-        $gl.getAttribLocations(prg, [
+        $gl.getAttribLocations(programs[0], [
             'position',
             'color',
             'textureCoord'
@@ -84,7 +92,7 @@
         $gl.setupIndex(iIndex);
         
         // uniformLocationを配列に取得
-        $gl.getUniformLocations(prg, [
+        $gl.getUniformLocations(programs[0], [
             'mvpMatrix',
             'texture'
         ], uniLocation);
@@ -162,7 +170,7 @@
         gl = $gl.getGLContext(c);
 
         // コードを実行
-        run();
+        // run();
     };
 
 }());
