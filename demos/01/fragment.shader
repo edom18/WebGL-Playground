@@ -2,6 +2,7 @@ precision mediump float;
 
 uniform sampler2D texture;
 
+varying vec4 vColor;
 varying vec2 vTextureCoord;
 
 void main() {
@@ -15,16 +16,19 @@ void main() {
         }
     }
 
+    vec4 dstColor;
     if (texColor.r < 0.3) {
         // discard;
-        gl_FragColor = sum * sum * 0.012 + texColor;
+        dstColor = sum * sum * 0.012 + texColor;
     }
     else if (texColor.r < 0.5) {
         // discard;
-        gl_FragColor = sum * sum * 0.009 + texColor;
+        dstColor = sum * sum * 0.009 + texColor;
     }
     else {
         // discard;
-        gl_FragColor = sum * sum * 0.0075 + texColor;
+        dstColor = sum * sum * 0.0075 + texColor;
     }
+
+    gl_FragColor = vColor * dstColor;
 }

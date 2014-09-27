@@ -35,20 +35,21 @@
         $gl.getAttribLocations(programs[0], [
             'position',
             'color',
-            'textureCoord'
+            'textureCoord',
+            'normal',
         ], attLocation);
         
         // attributeの要素数を配列に格納
         attStride[0] = 3;
         attStride[1] = 4;
         attStride[2] = 2;
+        attStride[3] = 3;
 
-        var model = new Sphere(32, 32, 2.0, [0.5, 0, 0, 1]);
-        // var model = new Torus(32, 32, 1.0, 2.0, [0.5, 0, 0, 1]);
-        var position = model.position;
-        var color    = model.color;
-        var index    = model.index;
-        var textureCoord = model.texture;
+        // var model = new Sphere(32, 32, 2.0, [0.5, 0, 0, 1]);
+        var model = new Torus(32, 32, 1.0, 2.0, [0.5, 0, 0, 1]);
+
+        var lightPosition = vec3(1, 1, 1);
+        var lightUp       = vec3.up;
         
         // 頂点の位置
         // var position = [
@@ -81,11 +82,12 @@
         // ];
         
         // VBOとIBOの生成
-        var vPosition     = $gl.createVBO(position);
-        var vColor        = $gl.createVBO(color);
-        var vTextureCoord = $gl.createVBO(textureCoord);
-        var VBOList       = [vPosition, vColor, vTextureCoord];
-        var iIndex        = $gl.createIBO(index);
+        var vPosition     = $gl.createVBO(model.position);
+        var vNormal       = $gl.createVBO(model.normal);
+        var vColor        = $gl.createVBO(model.color);
+        var vTextureCoord = $gl.createVBO(model.textureCoord);
+        var VBOList       = [vPosition, vColor, vTextureCoord, vNormal];
+        var iIndex        = $gl.createIBO(model.index);
         
         // VBOとIBOの登録
         $gl.setupAttributes(VBOList, attLocation, attStride);
@@ -94,21 +96,23 @@
         // uniformLocationを配列に取得
         $gl.getUniformLocations(programs[0], [
             'mvpMatrix',
-            'texture'
+            'texture',
+            'mMatix',
+            'mMatrixInv',
+            'lightPosition',
         ], uniLocation);
         
         // 各種行列の生成と初期化
-        var m = new matIV();
-        var mMatrix   = m.identity(m.create());
-        var vMatrix   = m.identity(m.create());
-        var pMatrix   = m.identity(m.create());
-        var tmpMatrix = m.identity(m.create());
-        var mvpMatrix = m.identity(m.create());
+        var mMatrix   = mat4();
+        var vMatrix   = mat4();
+        var pMatrix   = mat4();
+        var tmpMatrix = mat4();
+        var mvpMatrix = mat4();
         
         // ビュー×プロジェクション座標変換行列
-        m.lookAt([0.0, 2.0, 5.0], [0, 0, 0], [0, 1, 0], vMatrix);
-        m.perspective(45, c.width / c.height, 0.1, 100, pMatrix);
-        m.multiply(pMatrix, vMatrix, tmpMatrix);
+        mat4.lookAt(vec3(0.0, 3.0, 5.0), vec3(0, 0, 0), vec3(0, 1, 0), vMatrix);
+        mat4.perspective(45, c.width / c.height, 0.1, 100, pMatrix);
+        mat4.multiply(pMatrix, vMatrix, tmpMatrix);
         
         // 深度テストを有効にする
         gl.enable(gl.DEPTH_TEST);
@@ -119,6 +123,8 @@
         
         // テクスチャを生成
         texture = $gl.setupTexture('../../img/texture.jpg');
+
+        var m = new matIV();
         
         // カウンタの宣言
         var count = 0;
@@ -128,9 +134,8 @@
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             
-            // カウンタを元にラジアンを算出
             count += 0.5;
-            var rad = (count % 360) * Math.PI / 180;
+            var angle = (count % 360);
             
             // テクスチャをバインドする
             gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -138,16 +143,24 @@
             // uniform変数にテクスチャを登録
             gl.uniform1i(uniLocation[1], 0);
             
-            // モデル座標変換行列の生成
-            m.identity(mMatrix);
-            m.scale(mMatrix, [0.5, 0.5, 0.5], mMatrix);
-            m.rotate(mMatrix, rad, [0, 1, 0], mMatrix);
-            m.multiply(tmpMatrix, mMatrix, mvpMatrix);
-            
-            // uniform変数の登録と描画
-            gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
-            gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
-            
+            {
+                // モデル座標変換行列の生成
+                mat4.identity(mMatrix);
+                mat4.scale(mMatrix, [0.5, 0.5, 0.5], mMatrix);
+                mat4.rotate(mMatrix, angle, [0, 1, 0], mMatrix);
+                mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+                var mMatrixInv = mat4();
+                m.inverse(mMatrix, mMatrixInv);
+                
+                // uniform変数の登録と描画
+                gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
+                gl.uniformMatrix4fv(uniLocation[2], false, mMatrix);
+                gl.uniformMatrix4fv(uniLocation[3], false, mMatrixInv);
+                gl.uniform3fv(uniLocation[4], lightPosition);
+                gl.drawElements(gl.TRIANGLES, model.index.length, gl.UNSIGNED_SHORT, 0);
+            }
+
             // コンテキストの再描画
             gl.flush();
             
