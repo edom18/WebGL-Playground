@@ -46,40 +46,11 @@
         attStride[3] = 3;
 
         // var model = new Sphere(32, 32, 2.0, [0.5, 0, 0, 1]);
-        var model = new Torus(32, 32, 1.0, 2.0, [0.5, 0, 0, 1]);
+        // var model = new Torus(32, 32, 1.0, 2.0, [0.5, 0, 0, 1]);
+        var model = new Plane(2, 2, 2, 2, [0.5, 0, 0, 1]);
 
         var lightPosition = vec3(1, 1, 1);
         var lightUp       = vec3.up;
-        
-        // 頂点の位置
-        // var position = [
-        //     -1.0,  1.0,  0.0,
-        //      1.0,  1.0,  0.0,
-        //     -1.0, -1.0,  0.0,
-        //      1.0, -1.0,  0.0
-        // ];
-        
-        // 頂点色
-        // var color = [
-        //     1.0, 1.0, 1.0, 1.0,
-        //     1.0, 1.0, 1.0, 1.0,
-        //     1.0, 1.0, 1.0, 1.0,
-        //     1.0, 1.0, 1.0, 1.0
-        // ];
-        
-        // テクスチャ座標
-        // var textureCoord = [
-        //     0.0, 0.0,
-        //     1.0, 0.0,
-        //     0.0, 1.0,
-        //     1.0, 1.0
-        // ];
-        
-        // 頂点インデックス
-        // var index = [
-        //     0, 1, 2,
-        //     3, 2, 1
-        // ];
         
         // VBOとIBOの生成
         var vPosition     = $gl.createVBO(model.position);
