@@ -12,8 +12,8 @@
 
     // シェーダの読み込み
     util.when([
-        $gl.loadShader('vertex', 'vertex.shader'),
-        $gl.loadShader('fragment', 'fragment.shader')
+        $gl.loadShader('vertex', 'shader/vertex.shader'),
+        $gl.loadShader('fragment', 'shader/fragment.shader')
     ]).done(function (shaders) {
         for (var i = 0, l = shaders.length; i < l; i += 2) {
             // ソースコードをコンパイル、プログラムオブジェクトの生成
@@ -94,8 +94,6 @@
         
         // テクスチャを生成
         texture = $gl.setupTexture('../../img/texture.jpg');
-
-        var m = new matIV();
         
         // カウンタの宣言
         var count = 0;
@@ -122,7 +120,7 @@
                 mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
 
                 var mMatrixInv = mat4();
-                m.inverse(mMatrix, mMatrixInv);
+                mat4.inverse(mMatrix, mMatrixInv);
                 
                 // uniform変数の登録と描画
                 gl.uniformMatrix4fv(uniLocation[0], false, mvpMatrix);
@@ -152,9 +150,6 @@
         
         // webglコンテキストを取得
         gl = $gl.getGLContext(c);
-
-        // コードを実行
-        // run();
     };
 
 }());

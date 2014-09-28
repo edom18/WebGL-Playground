@@ -6,6 +6,7 @@ attribute vec2 textureCoord;
 uniform mat4 mvpMatrix;
 uniform mat4 mMatrix;
 uniform mat4 mMatrixInv;
+uniform mat4 tMatrix;
 uniform vec3 lightPosition;
 
 varying vec4 vNormal;
