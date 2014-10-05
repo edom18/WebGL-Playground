@@ -5,10 +5,12 @@
     var texture     = null;
     var programs    = [];
 
+    var size = 512;
+
     // canvasエレメントを取得
     var c = document.getElementById('canvas');
-    c.width  = window.innerWidth;
-    c.height = window.innerHeight;
+    c.width  = size;//window.innerWidth;
+    c.height = size;//window.innerHeight;
     
     // webglコンテキストを取得
     var gl = $gl.getGLContext(c);
@@ -89,6 +91,9 @@
      */
     function run() {
         var cameraPos = vec3(0, 1, 15);
+        var lightPosition = vec3(0.0, 0.0, 5.0);
+        var lightUp       = vec3.up;
+
         var dragging = false;
         var delta = 0;
         var previousX = 0;
@@ -110,6 +115,8 @@
 
             cameraPos.x -= deltaX;
             cameraPos.y -= deltaY;
+            // lightPosition.x -= deltaX / 10;
+            // lightPosition.y -= deltaY / 10;
         }, false);
         document.addEventListener('mouseup', function (e) {
             dragging = false;
@@ -117,13 +124,14 @@
 
         document.addEventListener('mousewheel', function (e) {
             cameraPos.z -= e.wheelDelta / 5;
+            // lightPosition.z -= e.wheelDelta / 10;
             e.preventDefault();
         }, false);
 
         /////////////////////////////////////////////////////////////////////////////////
 
         // Create models.
-        var sphere = new Sphere(32, 32, 2.0, [1, 1, 1, 1]);
+        var sphere = new Sphere(32, 32, 2.0, [1, 0, 0, 1]);
         var torus  = new Torus(32, 32, 1.0, 2.0, [1, 1, 1, 1]);
         var plane  = new Plane(2, 2, 2, 2, [1, 1, 1, 1]);
 
@@ -136,9 +144,6 @@
         var tmpMatrix = mat4();
         var mvpMatrix = mat4();
 
-        var lightPosition = vec3(0.0, 1.0, 8.0);
-        var lightUp       = vec3.up;
-
         // 射影テクスチャリング用行列を保持
         var textureProjMatrix = mat4.projectiveTexture;
 
@@ -146,6 +151,7 @@
         var lvMatrix   = mat4();
         var lpMatrix   = mat4();
         var lvpMatrix  = mat4();
+        var lgtMatrix  = mat4();
 
         
         // 深度テストを有効にする
@@ -155,8 +161,8 @@
         /////////////////////////////////////////////////////////////////////////////////
 
         // Create a frame buffer as shadow map.
-        var width  = 1024;
-        var height = 1024;
+        var width  = size;
+        var height = size;
         var f = $gl.setupFrameBuffer(width, height);
 
         /////////////////////////////////////////////////////////////////////////////////
@@ -166,16 +172,20 @@
             var attributes = [
                 'position',
                 'color',
-                'normal'
+                'normal',
+                'textureCoord'
             ];
-            var stride = [3, 4, 3];
+            var stride = [3, 4, 3, 2];
             var uniforms = [
                 'mvpMatrix',
                 'texture',
+                'shadowTexture',
                 'mMatrix',
                 'mMatrixInv',
+                'lgtMatrix',
                 'lightPosition',
                 'tMatrix',
+                'showDepthBuffer',
             ];
 
             var renderSphere = new RenderObject(programs[0], sphere, attributes, stride, uniforms);
@@ -186,11 +196,9 @@
         // for shadow rendering.
         {
             var attributes = [
-                'position',
-                'color',
-                'normal'
+                'position'
             ];
-            var stride = [3, 4, 3];
+            var stride = [3];
             var uniforms = [
                 'mvpMatrix'
             ];
@@ -205,20 +213,28 @@
         gl.activeTexture(gl.TEXTURE0);
         
         // テクスチャを生成
-        texture = $gl.setupTexture('img/logo.jpg');
-        // texture = $gl.setupTexture('../../img/texture.jpg');
+        // texture = $gl.setupTexture('img/logo.jpg');
+        texture = $gl.setupTexture('../../img/texture.jpg');
         
 
         // カウンタの宣言
         var count = 0;
+        var DEG_TO_RAD = $gl.DEG_TO_RAD;
         (function loop() {
+
             count += 0.5;
             var angle = (count % 360);
             var currentRnederObj;
 
+            var currentLightPos = vec3(0);
+            var rad = $gl.degToRad(angle);
+            currentLightPos.x = lightPosition.x + Math.cos(rad) * 3;
+            currentLightPos.y = lightPosition.x + Math.sin(rad) * 3;
+            currentLightPos.z = lightPosition.z;
+
             // ライトから見たビューｘプロジェクション座標変換行列
-            mat4.lookAt(lightPosition, vec3.zero, lightUp, lvMatrix);
-            mat4.perspective(60, 1.0, 0.1, 150, lpMatrix);
+            mat4.lookAt(currentLightPos, vec3.zero, lightUp, lvMatrix);
+            mat4.perspective(90, 1.0, 0.1, 1350, lpMatrix);
             mat4.multiply(lpMatrix, lvMatrix, lvpMatrix);
 
             // 射影テクスチャリング用に行列を生成
@@ -244,7 +260,8 @@
                     setRenderObject(currentRnederObj);
             
                     mat4.identity(mMatrix4Shadow);
-                    mat4.scale(mMatrix4Shadow, vec3(0.5, 0.5, 0.5), mMatrix4Shadow);
+                    mat4.translate(mMatrix4Shadow, vec3(-2, 0, -1), mMatrix4Shadow);
+                    mat4.scale(mMatrix4Shadow, vec3(0.5), mMatrix4Shadow);
                     mat4.rotate(mMatrix4Shadow, angle, vec3(1, 0, 0), mMatrix4Shadow);
                     mat4.multiply(lvpMatrix, mMatrix4Shadow, mvpMatrix4Shadow);
 
@@ -253,15 +270,15 @@
                     gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
                 }
 
-                // シャドウ用スフィアモデル
+                // シャドウ用トーラスモデル2
                 {
-                    currentRnederObj = shadowSphere;
+                    currentRnederObj = shadowTorus;
                     setRenderObject(currentRnederObj);
             
                     mat4.identity(mMatrix4Shadow);
-                    mat4.translate(mMatrix4Shadow, vec3(3, 0, 0), mMatrix4Shadow);
-                    mat4.scale(mMatrix4Shadow, vec3(0.5, 0.5, 0.5), mMatrix4Shadow);
-                    mat4.rotate(mMatrix4Shadow, angle, vec3(0, 1, 0), mMatrix4Shadow);
+                    mat4.translate(mMatrix4Shadow, vec3(-1, 0, 2), mMatrix4Shadow);
+                    mat4.scale(mMatrix4Shadow, vec3(0.5), mMatrix4Shadow);
+                    mat4.rotate(mMatrix4Shadow, angle, vec3(0, 0, 1), mMatrix4Shadow);
                     mat4.multiply(lvpMatrix, mMatrix4Shadow, mvpMatrix4Shadow);
 
                     // uniform変数の登録と描画
@@ -269,13 +286,30 @@
                     gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
                 }
 
+                // シャドウ用スフィアモデル
+                // {
+                //     currentRnederObj = shadowSphere;
+                //     setRenderObject(currentRnederObj);
+            
+                //     mat4.identity(mMatrix4Shadow);
+                //     mat4.translate(mMatrix4Shadow, vec3(2, 0, 0), mMatrix4Shadow);
+                //     mat4.scale(mMatrix4Shadow, vec3(0.5, 0.5, 0.5), mMatrix4Shadow);
+                //     mat4.rotate(mMatrix4Shadow, angle, vec3(0, 1, 0), mMatrix4Shadow);
+                //     mat4.multiply(lvpMatrix, mMatrix4Shadow, mvpMatrix4Shadow);
+
+                //     // uniform変数の登録と描画
+                //     gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix4Shadow);
+                //     gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                // }
+
                 // シャドウ用プレーンモデル
                 {
                     currentRnederObj = shadowPlane;
                     setRenderObject(currentRnederObj);
             
                     mat4.identity(mMatrix4Shadow);
-                    mat4.scale(mMatrix4Shadow, vec3(2), mMatrix4Shadow);
+                    mat4.translate(mMatrix4Shadow, vec3(0, 0, -10), mMatrix4Shadow);
+                    mat4.scale(mMatrix4Shadow, vec3(5), mMatrix4Shadow);
                     mat4.rotate(mMatrix4Shadow, 90, [1, 0, 0], mMatrix4Shadow);
                     mat4.multiply(lvpMatrix, mMatrix4Shadow, mvpMatrix4Shadow);
 
@@ -290,12 +324,19 @@
             // for rendering screen.
             {
                 // uniform変数にテクスチャを登録
-                // gl.uniform1i(renderTorus.uniLocations.texture, 0);
                 gl.useProgram(programs[0]);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
                 gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.uniform1i(renderTorus.uniLocations.texture, 0);
+
+                gl.activeTexture(gl.TEXTURE1);
                 gl.bindTexture(gl.TEXTURE_2D, f.texture);
+                gl.uniform1i(renderTorus.uniLocations.shadowTexture, 1);
+
                 
+                var check = document.getElementById('showDepthBuffer').checked;
                 {
                     gl.clearColor(0.0, 0.0, 0.0, 1.0);
                     gl.clearDepth(1.0);
@@ -306,27 +347,126 @@
                     mat4.perspective(45, c.width / c.height, 0.1, 100, pMatrix);
                     mat4.multiply(pMatrix, vMatrix, tmpMatrix);
 
-                    currentRnederObj = renderPlane;
-                    setRenderObject(currentRnederObj);
-            
-                    // モデル座標変換行列の生成
-                    mat4.identity(mMatrix);
-                    // mat4.translate(mMatrix, vec3(0, 0, -2), mMatrix);
-                    mat4.scale(mMatrix, vec3(2), mMatrix);
-                    mat4.rotate(mMatrix, 90, [1, 0, 0], mMatrix);
-                    mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
+                    // トーラスモデルの描画
+                    {
+                        currentRnederObj = renderTorus;
+                        setRenderObject(currentRnederObj);
+                
+                        // モデル座標変換行列の生成
+                        mat4.identity(mMatrix);
+                        mat4.translate(mMatrix, vec3(-2, 0, -1), mMatrix);
+                        mat4.scale(mMatrix, vec3(0.5), mMatrix);
+                        mat4.rotate(mMatrix, angle, [1, 0, 0], mMatrix);
+                        mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
 
-                    var mMatrixInv = mat4();
-                    mat4.inverse(mMatrix, mMatrixInv);
-                    
-                    // uniform変数の登録と描画
-                    gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
-                    gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix);
-                    gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrix,    false, mMatrix);
-                    gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrixInv, false, mMatrixInv);
-                    gl.uniformMatrix4fv(currentRnederObj.uniLocations.tMatrix,    false, tMatrix);
-                    gl.uniform3fv(currentRnederObj.uniLocations.lightPosition, lightPosition);
-                    gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                        var mMatrixInv = mat4();
+                        mat4.inverse(mMatrix, mMatrixInv);
+
+                        mat4.identity(lgtMatrix);
+                        mat4.multiply(lvpMatrix, mMatrix, lgtMatrix);
+                        
+                        // uniform変数の登録と描画
+                        gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
+                        gl.uniform1i(currentRnederObj.uniLocations.showDepthBuffer, check);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrix,    false, mMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrixInv, false, mMatrixInv);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.tMatrix,    false, tMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.lgtMatrix,  false, lgtMatrix);
+                        gl.uniform3fv(currentRnederObj.uniLocations.lightPosition, lightPosition);
+                        gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                    }
+
+                    // トーラスモデルの描画2
+                    {
+                        currentRnederObj = renderTorus;
+                        setRenderObject(currentRnederObj);
+                
+                        // モデル座標変換行列の生成
+                        mat4.identity(mMatrix);
+                        mat4.translate(mMatrix, vec3(-1, 0, 2), mMatrix);
+                        mat4.scale(mMatrix, vec3(0.5), mMatrix);
+                        mat4.rotate(mMatrix, angle, [0, 0, 1], mMatrix);
+                        mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+                        var mMatrixInv = mat4();
+                        mat4.inverse(mMatrix, mMatrixInv);
+
+                        mat4.identity(lgtMatrix);
+                        mat4.multiply(lvpMatrix, mMatrix, lgtMatrix);
+                        
+                        // uniform変数の登録と描画
+                        gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
+                        gl.uniform1i(currentRnederObj.uniLocations.showDepthBuffer, check);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrix,    false, mMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrixInv, false, mMatrixInv);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.tMatrix,    false, tMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.lgtMatrix,  false, lgtMatrix);
+                        gl.uniform3fv(currentRnederObj.uniLocations.lightPosition, lightPosition);
+                        gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                    }
+
+                    // スフィアモデルの描画
+                    {
+                        currentRnederObj = renderSphere;
+                        setRenderObject(currentRnederObj);
+                
+                        // モデル座標変換行列の生成
+                        mat4.identity(mMatrix);
+                        // mat4.translate(mMatrix, vec3(2, 0, 0), mMatrix);
+                        mat4.translate(mMatrix, currentLightPos, mMatrix);
+                        mat4.scale(mMatrix, vec3(0.2), mMatrix);
+                        mat4.rotate(mMatrix, angle, [0, 1, 0], mMatrix);
+                        mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+                        var mMatrixInv = mat4();
+                        mat4.inverse(mMatrix, mMatrixInv);
+
+                        mat4.identity(lgtMatrix);
+                        mat4.multiply(lvpMatrix, mMatrix, lgtMatrix);
+                        
+                        // uniform変数の登録と描画
+                        gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
+                        gl.uniform1i(currentRnederObj.uniLocations.showDepthBuffer, check);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrix,    false, mMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrixInv, false, mMatrixInv);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.tMatrix,    false, tMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.lgtMatrix,  false, lgtMatrix);
+                        gl.uniform3fv(currentRnederObj.uniLocations.lightPosition, lightPosition);
+                        gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                    }
+
+                    // プレーンモデルの描画
+                    {
+                        currentRnederObj = renderPlane;
+                        setRenderObject(currentRnederObj);
+                
+                        // モデル座標変換行列の生成
+                        mat4.identity(mMatrix);
+                        mat4.translate(mMatrix, vec3(0, 0, -10), mMatrix);
+                        mat4.scale(mMatrix, vec3(5), mMatrix);
+                        mat4.rotate(mMatrix, 90, [1, 0, 0], mMatrix);
+                        mat4.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+                        var mMatrixInv = mat4();
+                        mat4.inverse(mMatrix, mMatrixInv);
+
+                        mat4.identity(lgtMatrix);
+                        mat4.multiply(lvpMatrix, mMatrix, lgtMatrix);
+                        
+                        // uniform変数の登録と描画
+                        gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
+                        gl.uniform1i(currentRnederObj.uniLocations.showDepthBuffer, check);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mvpMatrix,  false, mvpMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrix,    false, mMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.mMatrixInv, false, mMatrixInv);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.tMatrix,    false, tMatrix);
+                        gl.uniformMatrix4fv(currentRnederObj.uniLocations.lgtMatrix,  false, lgtMatrix);
+                        gl.uniform3fv(currentRnederObj.uniLocations.lightPosition, lightPosition);
+                        gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                    }
                 }
             }
 
