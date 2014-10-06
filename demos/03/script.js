@@ -15,7 +15,7 @@
     // Shderをロード
     util.when([
         $gl.loadShader('vertex', 'shader/vertex.shader'),
-        $gl.loadShader('fragment', 'shader/fragment.shader')
+        $gl.loadShader('fragment', 'shader/fragment2.shader')
     ]).done(function (shaders) {
         program = $gl.setupProgram({
             vertexShader: shaders[0],
