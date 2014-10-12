@@ -1,3 +1,6 @@
 [submodule "MathJS"]
 	path = MathJS
 	url = https://github.com/edom18/MathJS.git
+[submodule "WebGLHelper"]
+	path = WebGLHelper
+	url = https://github.com/edom18/WebGLHelper.git
