@@ -25,20 +25,32 @@ float distanceFuncBox(vec3 rayPosition, vec3 position) {
     return length(max(q - vec3(1.5, 0.2, 0.5), 0.0)) - 0.1;
 }
 
-float distanceFunc(vec3 rayPosition, vec3 boxPos, vec3 spherePos) {
-    float d1 = distanceFuncBox(rayPosition, boxPos);
-    float d2 = distanceFuncSphere(rayPosition, spherePos);
-    return smoothMin(d1, d2, 8.0);
-    /*return min(d1, d2);*/
+float distanceFuncTorus(vec3 rayPosition, vec3 position) {
+    vec3 q = position - rayPosition;
+    float torusSize = 0.75;
+    float pipeSize  = 0.25;
+    vec2 r = vec2(length(q.xy) - torusSize, q.z);
+    return length(r) - pipeSize;
 }
 
-vec3 getNormal(vec3 rayPosition, vec3 position) {
+float distanceFunc(vec3 rayPosition, vec3 pos1, vec3 pos2) {
+    float d1 = distanceFuncBox(rayPosition, pos1);
+    /*float d2 = distanceFuncSphere(rayPosition, po2);*/
+    float d2 = distanceFuncTorus(rayPosition, pos2);
+    return smoothMin(d1, d2, 8.0);
+    /*return min(d1, d2);*/
+    /*return max(d1, d2);*/
+    /*return max(-d1, d2);*/
+    /*return max(d1, -d2);*/
+}
+
+vec3 getNormal(vec3 rayPosition, vec3 boxPos, vec3 spherePos) {
     // 差分
     const float d = 0.0001;
     return normalize(vec3(
-        distanceFuncBox(rayPosition + vec3(  d, 0.0, 0.0), position) - distanceFuncBox(rayPosition + vec3( -d, 0.0, 0.0), position),
-        distanceFuncBox(rayPosition + vec3(0.0,   d, 0.0), position) - distanceFuncBox(rayPosition + vec3(0.0,  -d, 0.0), position),
-        distanceFuncBox(rayPosition + vec3(0.0, 0.0,   d), position) - distanceFuncBox(rayPosition + vec3(0.0, 0.0,  -d), position)
+        distanceFunc(rayPosition + vec3(  d, 0.0, 0.0), boxPos, spherePos) - distanceFunc(rayPosition + vec3( -d, 0.0, 0.0), boxPos, spherePos),
+        distanceFunc(rayPosition + vec3(0.0,   d, 0.0), boxPos, spherePos) - distanceFunc(rayPosition + vec3(0.0,  -d, 0.0), boxPos, spherePos),
+        distanceFunc(rayPosition + vec3(0.0, 0.0,   d), boxPos, spherePos) - distanceFunc(rayPosition + vec3(0.0, 0.0,  -d), boxPos, spherePos)
     ));
 }
 
@@ -63,7 +75,7 @@ void main() {
     vec3  rPos = cameraPos;
 
     vec3 spherePos = vec3(0.0, -(mouse.y * 2.0 - 1.0) * 5.0, (mouse.x * 2.0 - 1.0) * 5.0);
-    /*vec3 boxPos = vec3(mouse.x, -mouse.y, -5.0);*/
+    /*vec3 boxPos = vec3(0.0, -(mouse.y * 2.0 - 1.0) * 5.0, (mouse.x * 2.0 - 1.0) * 5.0);*/
     vec3 boxPos = vec3(0.0, 0.0, 0.0);
 
     for (int i = 0; i < 64; i++) {
@@ -73,8 +85,7 @@ void main() {
     }
 
     if (abs(distance) < 0.001) {
-        /*float diffuse = clamp(dot(getNormal(rPos, spherePos), lightPos), 0.1, 1.0);*/
-        float diffuse = clamp(dot(getNormal(rPos, boxPos), lightPos), 0.1, 1.0);
+        float diffuse = clamp(dot(getNormal(rPos, boxPos, spherePos), lightPos), 0.1, 1.0);
         gl_FragColor = vec4(vec3(1.0), 1.0) * vec4(vec3(diffuse), 1.0);
     }
     else {
