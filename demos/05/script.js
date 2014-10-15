@@ -68,7 +68,6 @@ Bone.prototype = {
         this.updateMatrix();
     },
     scale: function (scale) {
-        // TODO: scaleはいる？
         mat4.scale(this.matrix, scale, this.matrx);
         this.updateMatrix();
     },
@@ -125,20 +124,14 @@ Bone.prototype = {
         var attributes = [
             'position',
             'color',
-            // 'weights',
-            // 'boneIndices',
+            'normal',
         ];
-        var stride = [3, 4, 3, 4];
+        var stride = [3, 4, 3];
         var uniforms = [
             'time',
             'mouse',
             'resolution',
             'MATRIX_MVP',
-            'combMatArr[0]',
-            'combMatArr[1]',
-            'combMatArr[2]',
-            'combMatArr[3]',
-            'combMatArr[4]',
         ];
             
         // Planeの定義
@@ -174,6 +167,22 @@ Bone.prototype = {
                 0.0, 1.0, 0.0, 1.0,
                 0.0, 0.0, 1.0, 1.0,
                 0.0, 0.0, 0.0, 1.0,
+            ],
+            normal: [
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
             ],
             index: [
                 0, 1, 2,
@@ -253,19 +262,18 @@ Bone.prototype = {
         var count = 0;
         var startTime = +new Date();
         var resolution = [size, size];
+        var axis = vec3(1, 0, 0);
         (function loop() {
 
-            count += 0.03;
+            count += 0.01;
             var angle = (count % 360);
             var currentRnederObj;
             var time = (+new Date() - startTime) * 0.001;
 
-            var s = Math.sin(count);
-            var a = 40 * s;
+            var s = Math.sin(count) / 5;
 
             for (var i = 0; i < bones.length; i++) {
-                var m = mat4.rotate(mat4(), a, vec3(0, 0, 1));
-                mat4.multiply(bones[i].matrixInit, m, bones[i].matrixBone);
+                bones[i].rotate(s, axis);
             }
 
             Bone.updateBone(bones[0], global);
@@ -289,6 +297,7 @@ Bone.prototype = {
             $gl.utility.setRenderObject(renderPlane);
 
             var newPosition = [];
+            var newNormal   = [];
             for (var i = 0; i < 12; i++) {
                 var idxBase = i * 3;
                 var idx0 = idxBase + 0;
@@ -325,6 +334,16 @@ Bone.prototype = {
                 newPosition[idx0] = pos.x;
                 newPosition[idx1] = pos.y;
                 newPosition[idx2] = pos.z;
+
+                var nor = vec3(plane.normal[idx0],
+                               plane.normal[idx1],
+                               plane.normal[idx2]);
+                mat4.inverse(comb2, comb2);
+
+                vec3.applyMatrix4FromRight(nor, comb2, nor);
+                newNormal[idx0] = nor.x;
+                newNormal[idx1] = nor.y;
+                newNormal[idx2] = nor.z;
             }
 
             var vbo = $gl.createVBO(newPosition);
@@ -332,15 +351,16 @@ Bone.prototype = {
             gl.enableVertexAttribArray(renderPlane.attrLocations[0]);
             gl.vertexAttribPointer(renderPlane.attrLocations[0], 3, gl.FLOAT, false, 0, 0);
 
+            var vboNor = $gl.createVBO(newNormal);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vboNor);
+            gl.enableVertexAttribArray(renderPlane.attrLocations[2]);
+            gl.vertexAttribPointer(renderPlane.attrLocations[2], 3, gl.FLOAT, false, 0, 0);
+
             // uniform変数の登録と描画
             gl.uniform1f(renderPlane.uniLocations.time, time);
             gl.uniform2fv(renderPlane.uniLocations.mouse, mouse);
             gl.uniform2fv(renderPlane.uniLocations.resolution, resolution);
             gl.uniformMatrix4fv(renderPlane.uniLocations.MATRIX_MVP, false, MATRIX_MVP);
-            for (var i = 0, l = combMatArr.length; i < l; i++) {
-                gl.uniformMatrix4fv(renderPlane.uniLocations['combMatArr[' + i + ']'], false, combMatArr[i]);
-            }
-
             gl.drawElements(gl.TRIANGLES, renderPlane.length, gl.UNSIGNED_SHORT, 0);
 
             // コンテキストの再描画
