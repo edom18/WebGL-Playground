@@ -8,13 +8,13 @@ function Bone(position) {
 /**
  * 各種ボーンを親空間の相対位置に変換
  */
-Bone.calcRelativeMat = function (bone, parentOffsteMat) {
+Bone.calcRelativeMat = function (bone, parentOffsetMat) {
     bone.children.forEach(function (childBone, idx) {
         Bone.calcRelativeMat(childBone, bone.matrixOffset);
     });
 
-    if (parentOffsteMat) {
-        mat4.multiply(bone.matrixInit, parentOffsteMat, bone.matrixInit);
+    if (parentOffsetMat) {
+        mat4.multiply(bone.matrixInit, parentOffsetMat, bone.matrixInit);
     }
 };
 
