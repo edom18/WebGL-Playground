@@ -1,4 +1,4 @@
-attribute vec3 position;
+attribute vec3  position;
 attribute float index;
 
 varying vec3 vColor;

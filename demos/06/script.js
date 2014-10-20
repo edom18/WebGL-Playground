@@ -55,65 +55,42 @@
         }
 
         /////////////////////////////////////////////////////////////////////////////////
-
-        var attributes = [
-            'position',
-            'color',
-            'normal',
-            'textureCoord',
-        ];
-        var stride = [3, 4, 3, 2];
-        var uniforms = [
-            'time',
-            'mouse',
-            'resolution',
-            'MATRIX_MVP',
-            'MATRIX_INV_M',
-            'texture',
-        ];
-
+        // モデルデータ
         var sphere = new Sphere(15, 15, 1.0, [1, 0, 0, 1]);
-        var torus  = new Torus(32, 32, 1.0, 2.0, [1, 1, 1, 1]);
-        var plane  = new Plane(2, 2, 2, 2, [1, 1, 1, 1]);
-
-        var renderPlane  = new $gl.utility.RenderObject(programs[1], plane, attributes, stride, uniforms);
-        var renderSphere = new $gl.utility.RenderObject(programs[1], sphere, attributes, stride, uniforms);
-
-        /////////////////////////////////////////////////////////////////////////////////
-
-        var vtf_attributes = [
-            'position',
-            'index'
-        ];
-        var vtf_stride = [3, 1];
-        var vtf_uniforms = [
-            //
-        ];
-        var vtfSphere  = new $gl.utility.RenderObject(programs[0], sphere, vtf_attributes, vtf_stride, vtf_uniforms);
-        var vtfPlane   = new $gl.utility.RenderObject(programs[0], plane, vtf_attributes, vtf_stride, vtf_uniforms);
-
         var position = sphere.position;
         var indices  = [];
         for (var i = 0, l = position.length / 3; i < l; i++) {
             indices[i] = i;
         }
+        sphere.index = indices;
 
-        var vtf_pos_vbo = $gl.createVBO(position);
-        var vtf_idx_vbo = $gl.createVBO(indices);
+
+        /////////////////////////////////////////////////////////////////////////////////
+        // テクスチャに書き込むシェーダのセットアップ
+        var vtf_attribLocations = {
+            'position': gl.getAttribLocation(programs[0], 'position'),
+            'index'   : gl.getAttribLocation(programs[0], 'index'),
+        };
+
+        var vtf_vbos = {
+            'position': $gl.createVBO(position),
+            'index'   : $gl.createVBO(indices),
+        };
 
         // オフスクリーン用バッファの準備
         var framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
+        var framebufferSize = 16;
         var renderbuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 16, 16);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, framebufferSize, framebufferSize);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
 
         // Bind texture.
         var vtf_texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, vtf_texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, framebufferSize, framebufferSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -125,8 +102,27 @@
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        /////////////////////////////////////////////////////////////////////////////////
 
+        /////////////////////////////////////////////////////////////////////////////////
+        // 通常レンダリングのセットアップ
+        var attribLocations = {
+            'index' : gl.getAttribLocation(programs[1], 'index'),
+            'color' : gl.getAttribLocation(programs[1], 'color'),
+            'normal': gl.getAttribLocation(programs[1], 'normal'),
+        };
+        var uniLocations = {
+            'MATRIX_MVP'  : gl.getUniformLocation(programs[1], 'MATRIX_MVP'),
+            'MATRIX_INV_M': gl.getUniformLocation(programs[1], 'MATRIX_INV_M'),
+            'texture'     : gl.getUniformLocation(programs[1], 'texture'),
+        };
+        var vbos = {
+            'index' : $gl.createVBO(sphere.index),
+            'color' : $gl.createVBO(sphere.color),
+            'normal': $gl.createVBO(sphere.normal),
+        };
+
+
+        /////////////////////////////////////////////////////////////////////////////////
         // カウンタの宣言
         var count = 0;
         var startTime = +new Date();
@@ -139,14 +135,11 @@
         var MATRIX_V   = mat4.lookAt(cameraPos, vec3.zero, vec3.up);
         var MATRIX_P   = mat4.perspective(60, c.width / c.height, 0.1, 1000);
         var MATRIX_MVP = mat4();
-
         (function loop() {
 
             count += 0.3;
             var angle = (count % 360);
-            var currentRnederObj;
             var time = (+new Date() - startTime) * 0.001;
-
 
             // Pass1
             {
@@ -158,17 +151,13 @@
 
                 gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, vtf_pos_vbo);
-                gl.enableVertexAttribArray(vtfSphere.attrLocations[0]);
-                gl.vertexAttribPointer(vtfSphere.attrLocations[0], 3, gl.FLOAT, false, 0, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, vtf_vbos.position);
+                gl.enableVertexAttribArray(vtf_attribLocations.position);
+                gl.vertexAttribPointer(vtf_attribLocations.position, 3, gl.FLOAT, false, 0, 0);
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, vtf_idx_vbo);
-                gl.enableVertexAttribArray(vtfSphere.attrLocations[1]);
-                gl.vertexAttribPointer(vtfSphere.attrLocations[1], 1, gl.FLOAT, false, 0, 0);
-
-                gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-                // gl.activeTexture(gl.TEXTURE0);
-                // gl.bindTexture(gl.TEXTURE_2D, vtf_texture);
+                gl.bindBuffer(gl.ARRAY_BUFFER, vtf_vbos.index);
+                gl.enableVertexAttribArray(vtf_attribLocations.index);
+                gl.vertexAttribPointer(vtf_attribLocations.index, 1, gl.FLOAT, false, 0, 0);
 
                 gl.drawArrays(gl.POINTS, 0, indices.length);
                 gl.flush();
@@ -177,12 +166,15 @@
             // Pass2
             {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.viewport(0, 0, size, size);
+
+                gl.useProgram(programs[1]);
+
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, vtf_texture);
-                gl.useProgram(programs[1]);
+
                 mat4.identity(MATRIX_M);
                 mat4.rotate(MATRIX_M, angle, axis, MATRIX_M);
-                // mat4.translate(MATRIX_M, vec3(-2.0, -2.0), MATRIX_M);
                 mat4.inverse(MATRIX_M, MATRIX_INV_M);
                 mat4.multiply(MATRIX_P,   MATRIX_V, MATRIX_MVP);
                 mat4.multiply(MATRIX_MVP, MATRIX_M, MATRIX_MVP);
@@ -190,24 +182,15 @@
                 ////////////////////////////////////////////////////////////////
 
                 // for rendering screen.
-                gl.viewport(0, 0, size, size);
                 gl.clearColor(0.0, 0.0, 0.0, 1.0);
                 gl.clearDepth(1.0);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-                // currentRnederObj = renderPlane;
-                currentRnederObj = renderSphere;
-
-                $gl.utility.setRenderObject(currentRnederObj);
-
                 // uniform変数の登録と描画
-                gl.uniform1f(currentRnederObj.uniLocations.time, time);
-                gl.uniform1i(currentRnederObj.uniLocations.texture, 0);
-                gl.uniform2fv(currentRnederObj.uniLocations.mouse, mouse);
-                gl.uniform2fv(currentRnederObj.uniLocations.resolution, resolution);
-                gl.uniformMatrix4fv(renderPlane.uniLocations.MATRIX_MVP, false, MATRIX_MVP);
-                gl.uniformMatrix4fv(renderPlane.uniLocations.MATRIX_INV_M, false, MATRIX_INV_M);
-                gl.drawElements(gl.TRIANGLES, currentRnederObj.length, gl.UNSIGNED_SHORT, 0);
+                gl.uniform1i(uniLocations.texture, 0);
+                gl.uniformMatrix4fv(uniLocations.MATRIX_MVP, false, MATRIX_MVP);
+                gl.uniformMatrix4fv(uniLocations.MATRIX_INV_M, false, MATRIX_INV_M);
+                gl.drawArrays(gl.POINTS, 0, indices.length);
 
                 // コンテキストの再描画
                 gl.flush();
