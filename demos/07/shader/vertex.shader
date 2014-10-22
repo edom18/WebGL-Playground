@@ -11,7 +11,7 @@ varying vec2 vTexCoord;
 
 vec3 lightPos = normalize(vec3(1.0, 1.0, -1.0));
 
-const float pxSize = 3.0;
+const float pxSize = 2.0;
 const float frag = 1.0 / pxSize;
 const float texShift = frag * 0.5;
 
